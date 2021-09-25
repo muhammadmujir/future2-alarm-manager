@@ -12,6 +12,8 @@ import android.os.SystemClock
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.alarmapp.databinding.ActivityMainBinding
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -36,16 +38,24 @@ class MainActivity : AppCompatActivity() {
       notifyIntent,
       PendingIntent.FLAG_UPDATE_CURRENT
     )
+    viewBinding.btnNextAlarm.setOnClickListener {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        alarmManager?.nextAlarmClock?.triggerTime?.let {
+          Toast.makeText(this, "Time: "+timeStampToDate(it), Toast.LENGTH_SHORT).show()
+        }
+      }
+    }
     viewBinding.alarmToggle.setOnCheckedChangeListener { compoundButton, isChecked ->
       var toastMessage = ""
       if (isChecked) {
-        alarmManager?.setInexactRepeating(
-          AlarmManager.ELAPSED_REALTIME_WAKEUP,
-          SystemClock.elapsedRealtime() + AlarmManager.INTERVAL_FIFTEEN_MINUTES,
-          AlarmManager.INTERVAL_FIFTEEN_MINUTES,
-          notifyPendingIntent
-        )
-        toastMessage = "Stand Up Alarm On!";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          alarmManager?.setAlarmClock(
+            AlarmManager.AlarmClockInfo(
+              Calendar.getInstance().timeInMillis + 15 * 60 *1000,
+              notifyPendingIntent
+            ), notifyPendingIntent)
+          toastMessage = "Stand Up Alarm On!";
+        }
       } else {
         alarmManager?.cancel(notifyPendingIntent)
         mNotificationManager?.cancelAll()
@@ -86,5 +96,9 @@ class MainActivity : AppCompatActivity() {
       this, NOTIFICATION_ID, intent,
       PendingIntent.FLAG_NO_CREATE
     ) != null
+  }
+
+  private fun timeStampToDate(timeStamp: Long, pattern: String = "E, dd MMM yyyy HH:mm"): String{
+    return SimpleDateFormat(pattern, Locale.getDefault()).format(timeStamp)
   }
 }
