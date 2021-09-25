@@ -38,22 +38,20 @@ class MainActivity : AppCompatActivity() {
       notifyIntent,
       PendingIntent.FLAG_UPDATE_CURRENT
     )
-    viewBinding.btnNextAlarm.setOnClickListener {
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-        alarmManager?.nextAlarmClock?.triggerTime?.let {
-          Toast.makeText(this, "Time: "+timeStampToDate(it), Toast.LENGTH_SHORT).show()
-        }
-      }
-    }
     viewBinding.alarmToggle.setOnCheckedChangeListener { compoundButton, isChecked ->
       var toastMessage = ""
       if (isChecked) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          alarmManager?.setAlarmClock(
-            AlarmManager.AlarmClockInfo(
-              Calendar.getInstance().timeInMillis + 15 * 60 *1000,
-              notifyPendingIntent
-            ), notifyPendingIntent)
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.KITKAT) {
+          val calendar: Calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 16)
+            set(Calendar.MINUTE, 55)
+          }
+          alarmManager?.setExact(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            notifyPendingIntent
+          )
           toastMessage = "Stand Up Alarm On!";
         }
       } else {
