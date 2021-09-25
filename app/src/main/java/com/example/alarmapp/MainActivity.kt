@@ -1,16 +1,16 @@
 package com.example.alarmapp
 
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NotificationCompat
 import com.example.alarmapp.databinding.ActivityMainBinding
 
 
@@ -27,16 +27,28 @@ class MainActivity : AppCompatActivity() {
     viewBinding = ActivityMainBinding.inflate(layoutInflater)
     setContentView(viewBinding.root)
     mNotificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    val alarmManager: AlarmManager? = getSystemService(ALARM_SERVICE) as? AlarmManager
+    val notifyIntent = Intent(this, AlarmReceiver::class.java)
+    checkAlarmState(notifyIntent)
+    val notifyPendingIntent = PendingIntent.getBroadcast(
+      this,
+      NOTIFICATION_ID,
+      notifyIntent,
+      PendingIntent.FLAG_UPDATE_CURRENT
+    )
     viewBinding.alarmToggle.setOnCheckedChangeListener { compoundButton, isChecked ->
       var toastMessage = ""
       if (isChecked) {
-        deliverNotification(this);
-        //Set the toast message for the "on" case
+        alarmManager?.setInexactRepeating(
+          AlarmManager.ELAPSED_REALTIME_WAKEUP,
+          SystemClock.elapsedRealtime() + AlarmManager.INTERVAL_FIFTEEN_MINUTES,
+          AlarmManager.INTERVAL_FIFTEEN_MINUTES,
+          notifyPendingIntent
+        )
         toastMessage = "Stand Up Alarm On!";
       } else {
-        //Cancel notification if the alarm is turned off
-        mNotificationManager?.cancelAll();
-        //Set the toast message for the "off" case
+        alarmManager?.cancel(notifyPendingIntent)
+        mNotificationManager?.cancelAll()
         toastMessage = "Stand Up Alarm Off!";
       }
       Toast.makeText(this, toastMessage, Toast.LENGTH_SHORT).show()
@@ -69,24 +81,10 @@ class MainActivity : AppCompatActivity() {
     }
   }
 
-  private fun deliverNotification(context: Context) {
-    val contentIntent = Intent(context, MainActivity::class.java)
-    val contentPendingIntent = PendingIntent.getActivity(
-      context,
-      NOTIFICATION_ID,
-      contentIntent,
-      PendingIntent.FLAG_UPDATE_CURRENT
-    )
-    val builder: NotificationCompat.Builder =
-      NotificationCompat.Builder(context, PRIMARY_CHANNEL_ID)
-        .setSmallIcon(R.drawable.ic_stand_up)
-        .setContentTitle("Stand Up Alert")
-        .setContentText("You should stand up and walk around now!")
-        .setContentIntent(contentPendingIntent)
-        .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setAutoCancel(true)
-        .setDefaults(NotificationCompat.DEFAULT_ALL)
-    mNotificationManager?.notify(NOTIFICATION_ID, builder.build());
+  private fun checkAlarmState(intent: Intent){
+    viewBinding.alarmToggle.isChecked = PendingIntent.getBroadcast(
+      this, NOTIFICATION_ID, intent,
+      PendingIntent.FLAG_NO_CREATE
+    ) != null
   }
-
 }
